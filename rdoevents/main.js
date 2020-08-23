@@ -55,10 +55,7 @@
         li.append(getAnchor(key.toLowerCase() + event.id));
         var text = document.createElement('span');
         text.innerText = event.timeString + ' - ' + event.name;
-        li.append(text);
-        list.append(li);
       });
-    el.container.innerHTML = list.outerHTML;
   }
 
   /**
