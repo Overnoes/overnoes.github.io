@@ -89,14 +89,6 @@
         return [qsKey, qsValues[qsKey].replace(/\s/g, '+')].join('=');
       })
       .join('&');
-    var url =
-      'https://docs.google.com/forms/d/e/1FAIpQLSeaEdri09zJXnLksx4icLAY70tWGGDqyuPvaQZQMnc4R9R9ag/viewform?usp=pp_url&' +
-      queryString;
-    anchor.setAttribute('href', url);
-    anchor.className = 'form-link';
-    anchor.innerText = 'Submit correction';
-    anchor.setAttribute('title', 'Incorrect time? Send me correct details and I\'ll update it.');
-    return anchor;
   }
 
   /**
