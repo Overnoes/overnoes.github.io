@@ -169,13 +169,13 @@
   function getEtaText(t) {
     t = t / 1000; // convert to seconds
     function s(t) {
-      return Math.abs(t) === 1 ? '' : 's';
+      return Math.abs(t) === 1 ? '' : '';
     }
     if (Math.abs(t) < 60) {
-      return Math.round(t) + ' second' + s(t);
+      return Math.round(t) + ' сек.' + s(t);
     }
     t = Math.round(t / 60); // convert to minutes
-    return t + ' minute' + s(t);
+    return t + ' мин.' + s(t);
   }
 
   /**
