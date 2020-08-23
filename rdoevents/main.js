@@ -56,7 +56,6 @@
         var text = document.createElement('span');
         text.innerText = event.timeString + ' - ' + event.name;
         li.append(text);
-        li.append(getFormLink(event, key, event.id));
         list.append(li);
       });
     el.container.innerHTML = list.outerHTML;
