@@ -122,10 +122,10 @@
       return t === 1 ? '' : '';
     }
     if (t < 60) {
-      return Math.round(t) + ' сек' + s(t);
+      return Math.round(t) + ' сек.' + s(t);
     }
     t = Math.round(t / 60); // convert to minutes
-    return t + ' мин' + s(t);
+    return t + ' мин.' + s(t);
   }
 
   /**
