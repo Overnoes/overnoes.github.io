@@ -2,8 +2,6 @@
 // Probably unnecessary but whatever, don't @ me
 
 (function() {
-  var timezone = getTimezone();
-
   // Frequency in minutes
   var eventFrequency = {
     freeRoam: 45,
@@ -30,61 +28,31 @@
   /**
    * Update the list of event times
    * @param {Array} schedule List of event times
-   * @param {string} key Property key (either freeRoam/role)
+   * @param {string} key Object property key (either freeRoam/role)
    */
   function updateList(schedule, key) {
     var el = elements[key];
     var frequency = minutesToMilliseconds(eventFrequency[key]);
     var list = document.createElement('ul');
-
-    schedule.map(function(t, i) {
-        return calculateEventTimes(t, i + 1, frequency);
-      })
-      .sort(function(a, b) {
-        // Start the list at midnight regardless of the user's timezone
-        return (a.timeNumber - b.timeNumber);
-      })
-      .forEach(function(event) {
-        var li = document.createElement('li');
-        if (event.isNext) {
-          li.classList.add('next-event');
-          el.nextEventName.innerHTML = event.name;
-          el.nextEventTime.innerHTML = event.timeString;
-          el.nextEventEta.innerHTML = event.etaText;
-        }
-        li.append(getAnchor(key.toLowerCase() + event.id));
-        var text = document.createElement('span');
-        text.innerText = event.timeString + ' - ' + event.name;
-      });
-  }
-
-  /**
-   * Create an anchor link
-   * @param {Object} event Event datum
-   * @param {string} key Property key (either freeRoam/role)
-   * @param {string} id Unique identifier
-   * @return {Node} anchor link element
-   */
-  function getFormLink(event, key, id) {
-    var anchor = document.createElement('a');
-    anchor.setAttribute('target', '_blank');
-    var eventType = {
-      freeRoam: 'Free-roam+event',
-      role: 'Role+event'
-    };
-    var qsValues = {
-      'entry.1897203079': eventType[key],
-      'entry.1753454597': timezone,
-      'entry.1235834234': event.timeString,
-      'entry.1278810820': event.utcTimeString,
-      'entry.698549775': event.name,
-      'entry.988863521': String(id)
-    };
-    var queryString = Object.keys(qsValues)
-      .map(function(qsKey) {
-        return [qsKey, qsValues[qsKey].replace(/\s/g, '+')].join('=');
-      })
-      .join('&');
+    schedule.forEach(function(t, i) {
+      var event = calculateEventTimes(t);
+      var li = document.createElement('li');
+      if (event.eta > 0 && event.eta < frequency) {
+        li.classList.add('next-event');
+        el.nextEventName.innerHTML = event.name;
+        el.nextEventTime.innerHTML = event.timeString;
+        el.nextEventEta.innerHTML = event.etaText;
+      }
+      li.append(getAnchor(key.toLowerCase() + (i + 1)));
+      li.append(event.timeString + ' - ' + event.name);
+      if (event.role) {
+        var role = document.createElement('span');
+        role.innerText = ' (' + event.role + ')';
+        li.append(role);
+      }
+      list.append(li);
+    });
+    el.container.innerHTML = list.outerHTML;
   }
 
   /**
@@ -95,7 +63,6 @@
   function getAnchor(id) {
     var anchor = document.createElement('a');
     anchor.setAttribute('id', id);
-    anchor.className = 'anchor';
     anchor.setAttribute('href', '#' + id);
     anchor.innerText = '#';
     return anchor;
@@ -115,46 +82,33 @@
    * @param {Array} d Event datum containing time and name
    * @return {Object} Formatted event datum
    */
-  function calculateEventTimes(d, id, frequency) {
+  function calculateEventTimes(d) {
     var eventTime = d[0];
-    var now = Date.now();
-    var oneDay = minutesToMilliseconds(24 * 60);
-    var dateTime = getDateTime(now, eventTime);
-    var eta = dateTime - now;
-    // Ensure that event dates are not in the past or too far
-    // in the future, where timezone is not UTC
-    if (eta > frequency) {
-      dateTime = getDateTime(now - oneDay, eventTime);
-      eta = dateTime - now;
-    }
+    var now = new Date();
+    var eventDateTime = new Date(
+      [now.toDateString(), eventTime, 'UTC'].join(' ')
+    );
+    var eta = eventDateTime - now;
+    // Ensure that all event dates are in the future, to fix timezone bug
     if (eta <= 0) {
-      dateTime = getDateTime(now + oneDay, eventTime);
-      eta = dateTime - now;
+      var tomorrow = new Date();
+      tomorrow.setDate(now.getDate() + 1);
+      eventDateTime = new Date(
+        [tomorrow.toDateString(), eventTime, 'UTC'].join(' ')
+      );
+      eta = eventDateTime - now;
     }
     return {
-      id: id,
-      dateTime: dateTime,
+      dateTime: eventDateTime,
       name: d[1],
+      role: d[2],
       eta: eta,
       etaText: getEtaText(eta),
-      isNext: eta > 0 && eta <= frequency,
-      timeString: dateTime.toLocaleTimeString('default', {
+      timeString: eventDateTime.toLocaleTimeString('default', {
         hour: '2-digit',
         minute: '2-digit'
-      }),
-      timeNumber: (dateTime.getHours() * 60 + dateTime.getMinutes()),
-      utcTimeString: eventTime
+      })
     };
-  }
-
-  /**
-   * Get the Date object for an event
-   * @param {number} date Timestamp, e.g. Date.now()
-   */
-  function getDateTime(date, eventTime) {
-    return new Date(
-      [new Date(date).toDateString(), eventTime, 'UTC'].join(' ')
-    );
   }
 
   /**
@@ -165,13 +119,13 @@
   function getEtaText(t) {
     t = t / 1000; // convert to seconds
     function s(t) {
-      return Math.abs(t) === 1 ? '' : '';
+      return t === 1 ? '' : '';
     }
-    if (Math.abs(t) < 60) {
-      return Math.round(t) + ' сек.' + s(t);
+    if (t < 60) {
+      return Math.round(t) + ' сек' + s(t);
     }
     t = Math.round(t / 60); // convert to minutes
-    return t + ' мин.' + s(t);
+    return t + ' мин' + s(t);
   }
 
   /**
@@ -204,7 +158,7 @@
    * Update the user's time zone in intro paragraph
    */
   function showTimeZone() {
-    elements.locale.innerText = ' (' + timezone + ')';
+    elements.locale.innerText = ' (' + getTimezone() + ')';
   }
 
   /**
@@ -245,7 +199,9 @@
 
   // Toggle theme on button click
   themeButton.addEventListener('click', function() {
-    var newTheme = THEMES[0] === currentTheme ? THEMES[1] : THEMES[0];
+    var newTheme = THEMES.find(function(d) {
+      return d !== currentTheme;
+    });
     updateTheme(newTheme, true);
   });
 })();
